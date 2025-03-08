@@ -1,2 +1,2 @@
 rancher:
-  hostname: rancher.onprem.kuberise.dev
+  hostname: rancher.platform.kuberise.dev
