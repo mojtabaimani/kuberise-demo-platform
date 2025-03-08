@@ -204,14 +204,19 @@ function configure_oidc_auth() {
   local context=$1
   local client_secret=$2
   local domain=$3
+  local cluster_name=${4:-"default"}  # Added cluster_name parameter with default value
 
   echo "Configuring OIDC authentication in kubeconfig..."
 
   # Get cluster info from current context
-  local cluster_name=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$context\")].context.cluster}")
+  local cluster_name_k8s=$(kubectl config view -o jsonpath="{.contexts[?(@.name == \"$context\")].context.cluster}")
 
-  # Add/Update oidc user
-  kubectl config set-credentials oidc \
+  # Create user name with cluster name
+  local oidc_user="oidc-$cluster_name"
+  local oidc_context="oidc-$cluster_name"
+
+  # Add/Update oidc user with cluster name in the name
+  kubectl config set-credentials "$oidc_user" \
     --exec-api-version=client.authentication.k8s.io/v1beta1 \
     --exec-command=kubectl \
     --exec-arg=oidc-login \
@@ -221,12 +226,12 @@ function configure_oidc_auth() {
     --exec-arg=--oidc-client-secret=$client_secret
 
   # Add/Update oidc context using the same cluster as original context
-  kubectl config set-context oidc \
-    --cluster=$cluster_name \
-    --user=oidc \
+  kubectl config set-context "$oidc_context" \
+    --cluster=$cluster_name_k8s \
+    --user="$oidc_user" \
     --namespace=default
 
-  echo "OIDC authentication configured. Use 'kubectl config use-context oidc' to switch to OIDC authentication."
+  echo "OIDC authentication configured. Use 'kubectl config use-context $oidc_context' to switch to OIDC authentication."
 }
 
 function generate_random_secret() {
@@ -406,7 +411,7 @@ deploy_app_of_apps "$CONTEXT" "$NAMESPACE_ARGOCD" "$cluster_name" "$REPO_URL" "$
 echo "Setting up Kubernetes OAuth2 client secret..."
 kubernetes_secret=$(get_or_generate_secret "$CONTEXT" "$NAMESPACE_KEYCLOAK" "kubernetes-oauth2-client-secret" "client-secret")
 create_secret "$CONTEXT" "$NAMESPACE_KEYCLOAK" "kubernetes-oauth2-client-secret" "--from-literal=client-secret=$kubernetes_secret"
-configure_oidc_auth "$CONTEXT" "$kubernetes_secret" "$DOMAIN"
+configure_oidc_auth "$CONTEXT" "$kubernetes_secret" "$DOMAIN" "$cluster_name"  # Pass cluster_name as the fourth parameter
 
 # Grafana OAuth2 Secret
 echo "Setting up Grafana OAuth2 client secret..."
