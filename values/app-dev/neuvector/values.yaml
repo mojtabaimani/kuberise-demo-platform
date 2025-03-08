@@ -6,7 +6,7 @@ core:
     enabled: true
     ingress:
       enabled: true
-      host: neuvector.platform.kuberise.dev
+      host: neuvector.dev.kuberise.dev
       ingressClassName: nginx-external
       tls: true
   cve:
