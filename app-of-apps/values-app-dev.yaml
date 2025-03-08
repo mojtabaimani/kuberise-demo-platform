@@ -58,7 +58,7 @@ ArgocdApplications:
     enabled: true
 
   cilium:
-    enabled: true
+    enabled: false
     syncWave: 1
     ignoreDifferences:
       - group: "*"
